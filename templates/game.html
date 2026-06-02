@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker De Game · {{ room_code }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="game-page">
+
+    <!-- ── Header ── -->
+    <header class="game-header">
+        <div class="header-logo">♠ Poker De Game</div>
+        <div class="header-room">
+            <span class="room-label">Room:</span>
+            <span class="room-code-display" id="roomCodeDisplay">{{ room_code }}</span>
+            <button class="copy-btn" id="copyBtn">Copy Code</button>
+            <span class="copy-hint" id="copyHint"></span>
+        </div>
+        <div class="header-player" id="myNameBadge"></div>
+    </header>
+
+    <!-- ── Main layout ── -->
+    <div class="game-layout">
+
+        <!-- Table area -->
+        <div class="table-area">
+
+            <!-- Oval table + seat wrapper -->
+            <div class="table-wrapper">
+                <div class="poker-table" id="pokerTable">
+                    <div class="table-center">
+                        <div class="pot-display" id="potDisplay">Pot: 0</div>
+                        <div class="community-cards" id="communityCards">
+                            <div class="card-slot empty"></div>
+                            <div class="card-slot empty"></div>
+                            <div class="card-slot empty"></div>
+                            <div class="card-slot empty"></div>
+                            <div class="card-slot empty"></div>
+                        </div>
+                        <div class="phase-badge" id="phaseBadge"></div>
+                        <div class="turn-timer" id="turnTimer"></div>
+                    </div>
+                </div>
+                <!-- Seats are injected outside the table oval but inside the wrapper -->
+                <div id="seatsContainer" class="seats-container"></div>
+            </div>
+
+            <!-- My hole cards -->
+            <div class="my-cards-area">
+                <div class="my-cards-label" id="myCardsLabel"></div>
+                <div class="my-cards" id="myCards"></div>
+            </div>
+
+            <!-- Betting controls -->
+            <div class="controls-bar" id="controlsBar" style="display:none;">
+                <button class="ctrl-btn btn-fold" id="foldBtn">Fold</button>
+                <button class="ctrl-btn btn-check" id="checkBtn">Check</button>
+                <button class="ctrl-btn btn-call" id="callBtn">Call</button>
+                <div class="raise-group">
+                    <button class="ctrl-btn btn-raise" id="raiseBtn">Raise to</button>
+                    <input type="number" id="raiseAmount" class="raise-input" min="0" step="10" placeholder="Amount">
+                </div>
+                <button class="ctrl-btn btn-allin" id="allinBtn">All-in</button>
+            </div>
+
+        </div><!-- /table-area -->
+
+        <!-- Chat sidebar -->
+        <div class="chat-sidebar" id="chatSidebar">
+            <div class="chat-header">
+                <span class="chat-title">Chat</span>
+                <button class="chat-collapse" id="chatCollapse">−</button>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-row">
+                <input type="text" class="chat-input" id="chatInput"
+                       placeholder="Say something..." maxlength="300" autocomplete="off">
+                <button class="chat-send" id="chatSend">↑</button>
+            </div>
+        </div>
+
+    </div><!-- /game-layout -->
+
+    <!-- ── Lobby overlay ── -->
+    <div class="overlay active" id="lobbyOverlay">
+        <div class="overlay-panel">
+            <div class="overlay-suits">♠ <span class="red">♥</span> <span class="red">♦</span> ♣</div>
+            <h2 class="overlay-title">Waiting Room</h2>
+            <p class="invite-hint">
+                Share code <strong class="code-chip">{{ room_code }}</strong> with your friends
+            </p>
+            <div class="lobby-players" id="lobbyPlayers"></div>
+            <div class="lobby-footer">
+                <button class="big-btn btn-start" id="startBtn" style="display:none;">
+                    Start Game
+                </button>
+                <p class="waiting-text" id="waitingText">Waiting for host to start...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Showdown overlay ── -->
+    <div class="overlay" id="showdownOverlay" style="display:none;">
+        <div class="overlay-panel showdown-panel">
+            <h2 class="overlay-title">Showdown!</h2>
+            <div class="showdown-results" id="showdownResults"></div>
+            <div class="showdown-actions" id="showdownActions"></div>
+        </div>
+    </div>
+
+    <!-- ── Toast ── -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const ROOM_CODE = "{{ room_code }}";
+    </script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/static/js/game.js"></script>
+</body>
+</html>
