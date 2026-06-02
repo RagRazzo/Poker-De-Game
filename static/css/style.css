@@ -907,13 +907,15 @@ input, select {
     /* 2-player heads-up: push local seat outside the oval bottom */
     [data-players="2"] .seat-pos-0 { transform: translateX(-50%) translateY(100%); }
 
-    /* Opponent seat: fixed just below the header — bypasses overflow clipping */
+    /* Opponent seat: fixed just below the header — bypasses overflow clipping.
+       Offset is driven by --header-h (measured in JS) so it always clears the
+       real header height instead of a guessed pixel value. */
     [data-players="2"] .seat-pos-1 {
         position: fixed;
-        top: calc(48px + env(safe-area-inset-top, 0px));
+        top: calc(var(--header-h, 56px) + 8px);
         left: 50%;
         transform: translateX(-50%);
-        z-index: 8;
+        z-index: 9;
     }
 
     /* Reserve space below wrapper for the local seat (above turnStatus) */

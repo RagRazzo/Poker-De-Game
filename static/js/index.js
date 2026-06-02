@@ -13,6 +13,14 @@ function showError(msg) {
     setTimeout(() => { errorMsg.textContent = ''; }, 4000);
 }
 
+/* Pre-fill the room code when arriving from an invite link (/?join=CODE) so a
+   new player only has to enter their name and hit Join. */
+const inviteCode = new URLSearchParams(window.location.search).get('join');
+if (inviteCode) {
+    roomCodeInput.value = inviteCode.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 6);
+    playerNameInput.focus();
+}
+
 roomCodeInput.addEventListener('input', () => {
     roomCodeInput.value = roomCodeInput.value.toUpperCase().replace(/[^A-Z2-9]/g, '');
 });

@@ -60,6 +60,20 @@ const copyBtn         = $('copyBtn');
 const copyHint        = $('copyHint');
 const myNameBadge     = $('myNameBadge');
 const toastEl         = $('toast');
+const gameHeaderEl    = document.querySelector('.game-header');
+
+/* ── Header height ───────────────────────────────────────────────────────────
+   The 2-player opponent seat is fixed-positioned just under the header. The
+   header height varies (room code, copy button, wraps on narrow screens), so we
+   publish the measured height as --header-h instead of hardcoding a pixel value
+   that left the opponent seat clipped behind the header on mobile. */
+function updateHeaderHeight() {
+    if (!gameHeaderEl) return;
+    document.documentElement.style.setProperty('--header-h', gameHeaderEl.offsetHeight + 'px');
+}
+updateHeaderHeight();
+window.addEventListener('resize', updateHeaderHeight);
+window.addEventListener('orientationchange', updateHeaderHeight);
 
 /* ── Rejoin on connect ───────────────────────────────────────────────────── */
 socket.on('connect', () => {
@@ -112,6 +126,7 @@ function render() {
     if (!state) return;
 
     myNameBadge.textContent = myName ? `Playing as ${myName}` : '';
+    updateHeaderHeight();
 
     potDisplay.textContent = `Pot: ${state.pot}`;
 
@@ -541,10 +556,12 @@ chatCollapse.addEventListener('click', () => {
 
 /* ── Copy room code ──────────────────────────────────────────────────────── */
 copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(ROOM_CODE).then(() => {
-        copyHint.textContent = 'Copied!';
+    const inviteLink = `${location.origin}/?join=${ROOM_CODE}`;
+    navigator.clipboard.writeText(inviteLink).then(() => {
+        copyHint.textContent = 'Link copied!';
         setTimeout(() => { copyHint.textContent = ''; }, 2000);
     }).catch(() => {
+        // Clipboard unavailable (e.g. non-HTTPS) — fall back to showing the code
         copyHint.textContent = ROOM_CODE;
     });
 });
