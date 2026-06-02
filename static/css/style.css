@@ -167,21 +167,65 @@ body {
 }
 
 .turn-timer {
-    color: rgba(255,255,255,0.6);
-    font-size: 0.78rem;
-    min-height: 1.2em;
-    margin-top: 3px;
-    transition: color 0.3s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    margin-top: 4px;
+    visibility: hidden;
 }
-.turn-timer.urgent {
-    color: #ff7070;
+.ring-track    { stroke: rgba(255,255,255,0.12); }
+.ring-progress {
+    stroke: var(--gold);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.95s linear, stroke 0.4s;
+}
+.timer-text {
+    position: absolute;
+    font-size: 0.8rem;
     font-weight: 700;
-    animation: pulse-timer 1s ease-in-out infinite;
+    color: rgba(255,255,255,0.75);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    line-height: 1;
 }
+.turn-timer.urgent .ring-progress { stroke: #ff6060; }
+.turn-timer.urgent .timer-text    { color: #ff7070; }
+.turn-timer.urgent { animation: pulse-timer 0.8s ease-in-out infinite; }
+
 @keyframes pulse-timer {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50%      { opacity: 0.55; }
 }
+
+.my-turn-timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 0.4rem;
+}
+.my-ring .ring-track    { stroke: rgba(255,255,255,0.10); }
+.my-ring .ring-progress {
+    stroke: var(--gold);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.95s linear, stroke 0.4s;
+}
+.my-timer-text {
+    position: absolute;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--gold);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    line-height: 1;
+}
+.my-turn-timer.urgent .my-ring .ring-progress { stroke: #ff6060; }
+.my-turn-timer.urgent .my-timer-text          { color: #ff7070; }
+.my-turn-timer.urgent { animation: pulse-timer 0.8s ease-in-out infinite; }
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 .card {
@@ -250,12 +294,51 @@ body {
     font-size: 0.72rem;
     text-align: center;
     pointer-events: auto;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
 }
 
 .seat.active-turn {
     border-color: var(--gold);
-    box-shadow: 0 0 14px rgba(224,185,76,0.6);
+    border-width: 2.5px;
+    background: rgba(224, 185, 76, 0.14);
+    box-shadow:
+        0 0 0 3px rgba(224,185,76,0.25),
+        0 0 22px rgba(224,185,76,0.75);
+    animation: seat-pulse 1.6s ease-in-out infinite;
+    z-index: 2;
+}
+@keyframes seat-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(224,185,76,0.25), 0 0 22px rgba(224,185,76,0.75); }
+    50%      { box-shadow: 0 0 0 6px rgba(224,185,76,0.45), 0 0 38px rgba(224,185,76,1.0);  }
+}
+
+.seats-container.in-betting .seat:not(.active-turn):not(.folded-seat) {
+    opacity: 0.55;
+}
+
+.seat-your-turn-badge {
+    display: none;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #1a1100;
+    background: var(--gold);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-top: 3px;
+    animation: badge-pop 0.2s ease-out;
+}
+@keyframes badge-pop {
+    from { transform: scale(0.7); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+.seat.active-turn.is-local .seat-your-turn-badge { display: inline-block; }
+
+.seat-cpu-badge {
+    font-size: 0.62rem;
+    color: #b090e0;
+    margin-top: 2px;
 }
 
 .seat.folded-seat { opacity: var(--fold-dim); }
@@ -314,19 +397,48 @@ body {
 .seat .card.back::after { font-size: 1rem; }
 .seat .card-slot.empty { width: 22px; height: 32px; border-radius: 3px; }
 
-/* Seat positions: 6 seats around oval (wrapper coords)  */
-/* seat-0: bottom-center (local player) */
+/* ── Seat positions: 6 seats around oval (wrapper coords, default) ───────── */
 .seat-pos-0 { bottom: 0;    left: 50%;  transform: translateX(-50%); }
-/* seat-1: bottom-right */
 .seat-pos-1 { bottom: 10px; right: 0;   transform: none; }
-/* seat-2: top-right */
 .seat-pos-2 { top: 10px;    right: 0;   transform: none; }
-/* seat-3: top-center */
 .seat-pos-3 { top: 0;       left: 50%;  transform: translateX(-50%); }
-/* seat-4: top-left */
 .seat-pos-4 { top: 10px;    left: 0;    transform: none; }
-/* seat-5: bottom-left */
 .seat-pos-5 { bottom: 10px; left: 0;    transform: none; }
+
+/* ── Dynamic seat sizes by player count ──────────────────────────────────── */
+[data-players="2"] .seat,
+[data-players="3"] .seat { width: 140px; font-size: 0.82rem; }
+[data-players="2"] .seat-name,
+[data-players="3"] .seat-name { font-size: 0.88rem; }
+
+[data-players="4"] .seat,
+[data-players="5"] .seat { width: 122px; font-size: 0.76rem; }
+
+/* ── 2 players: face each other ──────────────────────────────────────────── */
+[data-players="2"] .seat-pos-0 { bottom: 0;   left: 50%; transform: translateX(-50%); }
+[data-players="2"] .seat-pos-1 { top: 0;       left: 50%; transform: translateX(-50%); }
+
+/* ── 3 players: triangle ─────────────────────────────────────────────────── */
+[data-players="3"] .seat-pos-0 { bottom: 0;    left: 50%; transform: translateX(-50%); }
+[data-players="3"] .seat-pos-1 { top: 10px;    right: 0;  transform: none; }
+[data-players="3"] .seat-pos-2 { top: 10px;    left: 0;   transform: none; }
+
+/* ── 4 players: diamond ──────────────────────────────────────────────────── */
+[data-players="4"] .seat-pos-0 { bottom: 0;  left: 50%; transform: translateX(-50%); }
+[data-players="4"] .seat-pos-1 { top: 50%;   right: 0;  transform: translateY(-50%); }
+[data-players="4"] .seat-pos-2 { top: 0;     left: 50%; transform: translateX(-50%); }
+[data-players="4"] .seat-pos-3 { top: 50%;   left: 0;   transform: translateY(-50%); }
+
+/* ── 5 players: pentagon (skip center-top) ───────────────────────────────── */
+[data-players="5"] .seat-pos-0 { bottom: 0;    left: 50%; transform: translateX(-50%); }
+[data-players="5"] .seat-pos-1 { bottom: 10px; right: 0;  transform: none; }
+[data-players="5"] .seat-pos-2 { top: 10px;    right: 0;  transform: none; }
+[data-players="5"] .seat-pos-3 { top: 10px;    left: 0;   transform: none; }
+[data-players="5"] .seat-pos-4 { bottom: 10px; left: 0;   transform: none; }
+
+/* ── CPU button in lobby ─────────────────────────────────────────────────── */
+.btn-cpu { background: #4a3090; color: #ddd; margin-top: 0.5rem; }
+.btn-cpu:hover { background: #5a3aaa; }
 
 /* ── My hole cards ───────────────────────────────────────────────────────── */
 .my-cards-area {

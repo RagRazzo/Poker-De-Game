@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_socketio import SocketIO, join_room, leave_room, emit
 
 from poker import PokerGame
+from poker.game import CPU_SID
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
@@ -231,6 +232,31 @@ def on_next_round(data):
     broadcast_state(game)
 
 
+@socketio.on("start_with_cpu")
+def on_start_with_cpu(data):
+    code = SID_TO_ROOM.get(request.sid)
+    if not code or code not in GAMES:
+        emit("error", {"message": "Not in a game"})
+        return
+    game = GAMES[code]
+    if game.host_sid != request.sid:
+        emit("error", {"message": "Only the host can start"})
+        return
+    if game.phase != "lobby":
+        emit("error", {"message": "Game already in progress"})
+        return
+    if len(game.players) != 1 or game.max_players != 2:
+        emit("error", {"message": "CPU mode is only for 2-player games"})
+        return
+    game.add_cpu_player()
+    ok, msg = game.start_round()
+    if not ok:
+        emit("error", {"message": msg})
+        return
+    save(game)
+    broadcast_state(game)
+
+
 @socketio.on("new_session")
 def on_new_session(data):
     code = SID_TO_ROOM.get(request.sid)
@@ -304,7 +330,7 @@ socketio.start_background_task(cleanup_loop)
 
 def auto_play_loop():
     while True:
-        eventlet.sleep(5)
+        eventlet.sleep(2)
         now = time.time()
         for code in list(GAMES):
             game = GAMES.get(code)
@@ -312,9 +338,10 @@ def auto_play_loop():
                 continue
             if not game.turn_started_at:
                 continue
-            if now - game.turn_started_at < 90:
-                continue
             player = game.players[game.current_player_index]
+            threshold = 2 if player.get("is_cpu") else 90
+            if now - game.turn_started_at < threshold:
+                continue
             timeout_name = player["name"]
             action, amount = game.cpu_action()
             ok, _ = game.player_action(player["sid"], action, amount)

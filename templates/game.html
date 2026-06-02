@@ -39,7 +39,16 @@
                             <div class="card-slot empty"></div>
                         </div>
                         <div class="phase-badge" id="phaseBadge"></div>
-                        <div class="turn-timer" id="turnTimer"></div>
+                        <div class="turn-timer" id="turnTimer">
+                            <svg class="timer-ring" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+                                <circle class="ring-track" cx="24" cy="24" r="20" fill="none" stroke-width="3"/>
+                                <circle class="ring-progress" id="ringProgress" cx="24" cy="24" r="20"
+                                        fill="none" stroke-width="3"
+                                        stroke-dasharray="125.66" stroke-dashoffset="125.66"
+                                        transform="rotate(-90 24 24)"/>
+                            </svg>
+                            <span class="timer-text" id="timerText"></span>
+                        </div>
                     </div>
                 </div>
                 <!-- Seats are injected outside the table oval but inside the wrapper -->
@@ -62,6 +71,18 @@
                     <input type="number" id="raiseAmount" class="raise-input" min="0" step="10" placeholder="Amount">
                 </div>
                 <button class="ctrl-btn btn-allin" id="allinBtn">All-in</button>
+            </div>
+
+            <!-- Large personal countdown — only shown when it's your turn -->
+            <div class="my-turn-timer" id="myTurnTimer" style="display:none;">
+                <svg class="my-ring" viewBox="0 0 72 72" width="60" height="60" aria-hidden="true">
+                    <circle class="ring-track" cx="36" cy="36" r="30" fill="none" stroke-width="4"/>
+                    <circle class="ring-progress" id="myRingProgress" cx="36" cy="36" r="30"
+                            fill="none" stroke-width="4"
+                            stroke-dasharray="188.5" stroke-dashoffset="188.5"
+                            transform="rotate(-90 36 36)"/>
+                </svg>
+                <span class="my-timer-text" id="myTimerText"></span>
             </div>
 
         </div><!-- /table-area -->
@@ -91,7 +112,7 @@
                 Share code <strong class="code-chip">{{ room_code }}</strong> with your friends
             </p>
             <div class="lobby-players" id="lobbyPlayers"></div>
-            <div class="lobby-footer">
+            <div class="lobby-footer" id="lobbyFooter">
                 <button class="big-btn btn-start" id="startBtn" style="display:none;">
                     Start Game
                 </button>

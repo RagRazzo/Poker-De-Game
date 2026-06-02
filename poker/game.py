@@ -6,6 +6,7 @@ SMALL_BLIND = 10
 BIG_BLIND = 20
 STARTING_COINS = 1000
 AFK_TIMEOUT = 90   # seconds before CPU takes over
+CPU_SID = "__cpu__"
 
 
 class PokerGame:
@@ -286,6 +287,23 @@ class PokerGame:
         self._advance_turn()
         return True, "ok"
 
+    def add_cpu_player(self):
+        self.players.append({
+            "sid": CPU_SID,
+            "name": "CPU",
+            "coins": STARTING_COINS,
+            "bet": 0,
+            "total_bet": 0,
+            "folded": False,
+            "all_in": False,
+            "hole_cards": [],
+            "connected": True,
+            "is_host": False,
+            "has_acted": False,
+            "is_cpu": True,
+        })
+        self.touch()
+
     def cpu_action(self):
         """Simple CPU: check for free, call cheap bets, fold everything else."""
         player = self.players[self.current_player_index]
@@ -512,6 +530,7 @@ class PokerGame:
                 "all_in": p["all_in"],
                 "connected": p["connected"],
                 "is_host": p["is_host"],
+                "is_cpu": p.get("is_cpu", False),
                 "has_cards": len(p["hole_cards"]) > 0,
             })
 

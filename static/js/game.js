@@ -7,6 +7,17 @@ const myName = sessionStorage.getItem('playerName') || '';
 let state    = null;
 let myCards  = [];
 
+/* Timer state */
+let timerInterval     = null;
+let timerRefSeconds   = null;
+let timerRefTimestamp = null;
+
+/* Constants */
+const TOTAL_TURN_SECONDS = 90;
+const URGENT_THRESHOLD   = 30;
+const RING_CIRC_SMALL    = 125.66;  // 2π × 20
+const RING_CIRC_LARGE    = 188.50;  // 2π × 30
+
 const SUITS_GLYPH = { S: '♠', H: '♥', D: '♦', C: '♣' };
 const RED_SUITS   = new Set(['H', 'D']);
 
@@ -17,6 +28,11 @@ const potDisplay      = $('potDisplay');
 const communityEl     = $('communityCards');
 const phaseBadge      = $('phaseBadge');
 const turnTimerEl     = $('turnTimer');
+const timerText       = $('timerText');
+const ringProgress    = $('ringProgress');
+const myTurnTimerEl   = $('myTurnTimer');
+const myTimerText     = $('myTimerText');
+const myRingProgress  = $('myRingProgress');
 const seatsContainer  = $('seatsContainer');
 const myCardsEl       = $('myCards');
 const myCardsLabel    = $('myCardsLabel');
@@ -56,6 +72,13 @@ socket.on('joined', () => { /* server confirms, state will arrive via game_state
 /* ── game_state ─────────────────────────────────────────────────────────── */
 socket.on('game_state', (s) => {
     state = s;
+    if (s.turn_seconds_left != null && !['lobby', 'showdown'].includes(s.phase)) {
+        timerRefSeconds   = s.turn_seconds_left;
+        timerRefTimestamp = Date.now();
+        startCountdown();
+    } else {
+        stopCountdown();
+    }
     render();
 });
 
@@ -102,22 +125,48 @@ function render() {
     renderMyCards();
     renderLobbyOverlay();
     renderControls();
-    renderTurnTimer();
 }
 
-/* Turn timer */
-function renderTurnTimer() {
-    if (!turnTimerEl) return;
-    const secs = state.turn_seconds_left;
-    if (secs == null || state.phase === 'lobby' || state.phase === 'showdown') {
-        turnTimerEl.textContent = '';
-        turnTimerEl.className = 'turn-timer';
-        return;
+/* ── Countdown timer ─────────────────────────────────────────────────────── */
+function startCountdown() {
+    stopCountdown();
+    const tick = () => {
+        const elapsed   = Math.floor((Date.now() - timerRefTimestamp) / 1000);
+        const remaining = Math.max(0, timerRefSeconds - elapsed);
+        updateTimerDisplay(remaining);
+        if (remaining <= 0) stopCountdown();
+    };
+    tick();
+    timerInterval = setInterval(tick, 1000);
+}
+
+function stopCountdown() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    updateTimerDisplay(null);
+}
+
+function updateTimerDisplay(remaining) {
+    const active   = remaining != null && remaining > 0;
+    const urgent   = active && remaining <= URGENT_THRESHOLD;
+    const fraction = active ? Math.min(1, remaining / TOTAL_TURN_SECONDS) : 0;
+
+    timerText.textContent = active ? remaining + 's' : '';
+    ringProgress.style.strokeDashoffset = RING_CIRC_SMALL * (1 - fraction);
+    turnTimerEl.classList.toggle('urgent', urgent);
+    turnTimerEl.style.visibility = active ? 'visible' : 'hidden';
+
+    const curPlayer = state && (state.players || []).find(p => p.sid === state.current_player_sid);
+    const isCpu     = curPlayer && curPlayer.is_cpu;
+    const isMyTurn  = state && state.current_player_sid === socket.id;
+    const inBetting = state && !['lobby', 'showdown'].includes(state.phase);
+    const showBig   = active && isMyTurn && inBetting && !isCpu;
+    myTurnTimerEl.style.display = showBig ? 'flex' : 'none';
+    if (showBig) {
+        myTimerText.textContent = remaining;
+        myRingProgress.style.strokeDashoffset = RING_CIRC_LARGE * (1 - fraction);
+        myTurnTimerEl.classList.toggle('urgent', urgent);
     }
-    const currentPlayer = (state.players || []).find(p => p.sid === state.current_player_sid);
-    const name = currentPlayer ? currentPlayer.name : '';
-    turnTimerEl.textContent = `${name ? name + ' — ' : ''}${secs}s`;
-    turnTimerEl.className = 'turn-timer' + (secs <= 15 ? ' urgent' : '');
 }
 
 /* Community cards */
@@ -135,61 +184,99 @@ function renderCommunityCards() {
     }
 }
 
-/* Seats */
+/* Seats — DOM diffing to avoid flicker and animation resets */
 function renderSeats() {
-    seatsContainer.innerHTML = '';
-    const players = state.players || [];
-    const myIdx   = players.findIndex(p => p.name === myName);
+    const players  = state.players || [];
+    const myIdx    = players.findIndex(p => p.name === myName);
+    const liveSids = new Set(players.map(p => p.sid));
+    const inBetting = !['lobby', 'showdown'].includes(state.phase);
+
+    // Remove seats no longer in state
+    seatsContainer.querySelectorAll('[data-sid]').forEach(el => {
+        if (!liveSids.has(el.dataset.sid)) el.remove();
+    });
 
     players.forEach((p, serverIdx) => {
-        // Rotate so local player is always seat 0
         const displayIdx = myIdx >= 0
             ? (serverIdx - myIdx + players.length) % players.length
             : serverIdx;
-        const posClass = `seat-pos-${displayIdx}`;
 
-        const seat = document.createElement('div');
-        seat.className = 'seat ' + posClass;
-        if (p.sid === state.current_player_sid) seat.classList.add('active-turn');
-        if (p.folded) seat.classList.add('folded-seat');
+        let seat = seatsContainer.querySelector(`[data-sid="${CSS.escape(p.sid)}"]`);
+
+        if (!seat) {
+            seat = document.createElement('div');
+            seat.dataset.sid = p.sid;
+
+            const nameEl  = document.createElement('div');
+            nameEl.className = 'seat-name';
+            const coinsEl = document.createElement('div');
+            coinsEl.className = 'seat-coins';
+            const betEl   = document.createElement('div');
+            betEl.className = 'seat-bet';
+            const statusEl = document.createElement('div');
+            statusEl.className = 'seat-status';
+            const cardsRow = document.createElement('div');
+            cardsRow.className = 'seat-cards';
+            const badgeEl  = document.createElement('div');
+            badgeEl.className = 'seat-your-turn-badge';
+            badgeEl.textContent = 'Your Turn';
+
+            seat.appendChild(nameEl);
+            seat.appendChild(coinsEl);
+            seat.appendChild(betEl);
+            seat.appendChild(statusEl);
+            seat.appendChild(cardsRow);
+            seat.appendChild(badgeEl);
+
+            if (p.is_cpu) {
+                const cpuBadge = document.createElement('div');
+                cpuBadge.className = 'seat-cpu-badge';
+                cpuBadge.textContent = '🤖 CPU';
+                seat.appendChild(cpuBadge);
+            }
+
+            seatsContainer.appendChild(seat);
+        }
+
+        const isActive = p.sid === state.current_player_sid;
+        const isLocal  = p.name === myName;
+
+        seat.className = `seat seat-pos-${displayIdx}`;
+        if (isActive)            seat.classList.add('active-turn');
+        if (isActive && isLocal) seat.classList.add('is-local');
+        if (p.folded)            seat.classList.add('folded-seat');
         if (p.sid === state.dealer_sid) seat.classList.add('dealer-seat');
 
-        const nameEl = document.createElement('div');
-        nameEl.className = 'seat-name' + (p.name === myName ? ' is-you' : '');
-        nameEl.textContent = p.name + (p.name === myName ? ' (You)' : '');
+        const nameEl   = seat.querySelector('.seat-name');
+        const coinsEl  = seat.querySelector('.seat-coins');
+        const betEl    = seat.querySelector('.seat-bet');
+        const statusEl = seat.querySelector('.seat-status');
+        const cardsRow = seat.querySelector('.seat-cards');
 
-        const coinsEl = document.createElement('div');
-        coinsEl.className = 'seat-coins';
+        nameEl.className  = 'seat-name' + (isLocal ? ' is-you' : '');
+        nameEl.textContent = p.name + (isLocal ? ' (You)' : '');
+
         coinsEl.textContent = `${p.coins} coins`;
+        betEl.textContent   = p.bet > 0 ? `Bet: ${p.bet}` : '';
 
-        const betEl = document.createElement('div');
-        betEl.className = 'seat-bet';
-        betEl.textContent = p.bet > 0 ? `Bet: ${p.bet}` : '';
+        statusEl.textContent = p.folded ? 'Folded'
+            : p.all_in ? 'All-In'
+            : !p.connected && !p.is_cpu ? 'Away'
+            : '';
 
-        const statusEl = document.createElement('div');
-        statusEl.className = 'seat-status';
-        if (p.folded)    statusEl.textContent = 'Folded';
-        else if (p.all_in) statusEl.textContent = 'All-In';
-        else if (!p.connected) statusEl.textContent = 'Away';
-
-        // Cards for non-local players
-        const cardsRow = document.createElement('div');
-        cardsRow.className = 'seat-cards';
-        if (p.name !== myName && state.phase !== 'lobby') {
-            for (let i = 0; i < 2; i++) {
+        const neededCards = (!isLocal && state.phase !== 'lobby') ? 2 : 0;
+        if (cardsRow.children.length !== neededCards) {
+            cardsRow.innerHTML = '';
+            for (let i = 0; i < neededCards; i++) {
                 const back = document.createElement('div');
                 back.className = 'card back';
                 cardsRow.appendChild(back);
             }
         }
-
-        seat.appendChild(nameEl);
-        seat.appendChild(coinsEl);
-        seat.appendChild(betEl);
-        seat.appendChild(statusEl);
-        seat.appendChild(cardsRow);
-        seatsContainer.appendChild(seat);
     });
+
+    seatsContainer.dataset.players = players.length;
+    seatsContainer.classList.toggle('in-betting', inBetting && !!state.current_player_sid);
 }
 
 /* My hole cards */
@@ -222,7 +309,7 @@ function renderLobbyOverlay() {
         });
 
         const isHost = socket.id === state.host_sid;
-        const connectedCount = (state.players || []).filter(p => p.connected !== false).length;
+        const connectedCount = (state.players || []).filter(p => p.connected && !p.is_cpu).length;
         const enough = connectedCount >= 2;
         const maxP = state.max_players || 6;
         startBtn.style.display  = isHost ? 'inline-block' : 'none';
@@ -231,6 +318,20 @@ function renderLobbyOverlay() {
         startBtn.textContent = enough
             ? `Start Game (${connectedCount}/${maxP})`
             : `Waiting for players… (${connectedCount}/${maxP})`;
+
+        // CPU button for 2-player games when host is alone
+        const lobbyFooter = $('lobbyFooter');
+        const existingCpuBtn = lobbyFooter ? lobbyFooter.querySelector('.btn-cpu') : null;
+        if (existingCpuBtn) existingCpuBtn.remove();
+        const isTwoPlayer = state.max_players === 2;
+        const noCpu = !(state.players || []).some(p => p.is_cpu);
+        if (isHost && isTwoPlayer && connectedCount === 1 && noCpu && lobbyFooter) {
+            const cpuBtn = document.createElement('button');
+            cpuBtn.className = 'big-btn btn-cpu';
+            cpuBtn.textContent = 'Play vs CPU';
+            cpuBtn.onclick = () => socket.emit('start_with_cpu', {});
+            lobbyFooter.appendChild(cpuBtn);
+        }
     } else {
         lobbyOverlay.classList.remove('active');
     }
