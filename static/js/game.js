@@ -50,6 +50,7 @@ const waitingText     = $('waitingText');
 const showdownOverlay = $('showdownOverlay');
 const showdownResults = $('showdownResults');
 const showdownActions = $('showdownActions');
+const turnStatusEl    = $('turnStatus');
 const chatMessages    = $('chatMessages');
 const chatInput       = $('chatInput');
 const chatSend        = $('chatSend');
@@ -125,6 +126,12 @@ function render() {
     renderMyCards();
     renderLobbyOverlay();
     renderControls();
+
+    // Sync turn-status with current state immediately (timer interval updates it every second)
+    const inBetting = !['lobby', 'showdown'].includes(state.phase);
+    if (!inBetting || !state.current_player_sid) {
+        if (turnStatusEl) { turnStatusEl.textContent = ''; turnStatusEl.className = 'turn-status'; }
+    }
 }
 
 /* ── Countdown timer ─────────────────────────────────────────────────────── */
@@ -167,6 +174,24 @@ function updateTimerDisplay(remaining) {
         myRingProgress.style.strokeDashoffset = RING_CIRC_LARGE * (1 - fraction);
         myTurnTimerEl.classList.toggle('urgent', urgent);
     }
+
+    updateTurnStatus(remaining, curPlayer, isMyTurn, inBetting, urgent);
+}
+
+function updateTurnStatus(remaining, curPlayer, isMyTurn, inBetting, urgent) {
+    if (!turnStatusEl) return;
+    if (!state || !inBetting || !state.current_player_sid || !curPlayer) {
+        turnStatusEl.textContent = '';
+        turnStatusEl.className = 'turn-status';
+        return;
+    }
+    const active   = remaining != null && remaining > 0;
+    const timeStr  = active ? ` — ${remaining}s` : '';
+    const name     = isMyTurn ? 'Your turn' : `${curPlayer.name}'s turn`;
+    turnStatusEl.textContent = name + timeStr;
+    turnStatusEl.className   = 'turn-status' +
+        (isMyTurn ? ' is-my-turn' : '') +
+        (urgent   ? ' urgent'     : '');
 }
 
 /* Community cards */
@@ -277,6 +302,9 @@ function renderSeats() {
 
     seatsContainer.dataset.players = players.length;
     seatsContainer.classList.toggle('in-betting', inBetting && !!state.current_player_sid);
+
+    const tableArea = document.querySelector('.table-area');
+    if (tableArea) tableArea.dataset.playerCount = players.length;
 }
 
 /* My hole cards */
