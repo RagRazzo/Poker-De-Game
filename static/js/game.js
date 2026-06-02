@@ -58,7 +58,6 @@ const chatCollapse    = $('chatCollapse');
 const chatSidebar     = $('chatSidebar');
 const copyBtn         = $('copyBtn');
 const copyHint        = $('copyHint');
-const myNameBadge     = $('myNameBadge');
 const toastEl         = $('toast');
 const gameHeaderEl    = document.querySelector('.game-header');
 
@@ -125,7 +124,6 @@ socket.on('game_expired', (data) => {
 function render() {
     if (!state) return;
 
-    myNameBadge.textContent = myName ? `Playing as ${myName}` : '';
     updateHeaderHeight();
 
     potDisplay.textContent = `Pot: ${state.pot}`;
@@ -557,12 +555,15 @@ chatCollapse.addEventListener('click', () => {
 /* ── Copy room code ──────────────────────────────────────────────────────── */
 copyBtn.addEventListener('click', () => {
     const inviteLink = `${location.origin}/?join=${ROOM_CODE}`;
+    const reset = () => { copyHint.textContent = 'Copy invite'; copyHint.classList.remove('copied'); };
     navigator.clipboard.writeText(inviteLink).then(() => {
-        copyHint.textContent = 'Link copied!';
-        setTimeout(() => { copyHint.textContent = ''; }, 2000);
+        copyHint.textContent = 'Copied!';
+        copyHint.classList.add('copied');
+        setTimeout(reset, 2000);
     }).catch(() => {
-        // Clipboard unavailable (e.g. non-HTTPS) — fall back to showing the code
-        copyHint.textContent = ROOM_CODE;
+        // Clipboard unavailable (e.g. non-HTTPS) — confirm the code is on screen
+        copyHint.textContent = 'Copy failed';
+        setTimeout(reset, 2000);
     });
 });
 

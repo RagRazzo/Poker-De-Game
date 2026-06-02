@@ -58,47 +58,38 @@ input, select {
     letter-spacing: 0.5px;
 }
 
-.header-room {
+/* Single consolidated room-code chip — tap to copy the invite link.
+   Replaces the old "Room:" label + code + separate Copy button + name badge. */
+.room-chip {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    gap: 0.55rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--rail);
+    border-radius: 8px;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    font-family: inherit;
+    min-height: 38px;
+    transition: background 0.15s, border-color 0.15s;
 }
+.room-chip:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--gold); }
 
-.room-label { color: #80b080; font-size: 0.85rem; }
-
-.room-code-display {
+.room-chip-code {
     color: var(--gold);
     font-weight: 700;
     font-size: 1.05rem;
     letter-spacing: 4px;
 }
 
-.copy-btn {
-    background: transparent;
-    border: 1px solid var(--rail);
-    color: #b0c8b0;
-    border-radius: 6px;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: background 0.15s;
-    font-family: inherit;
-    min-height: 36px;
+.room-chip-action {
+    color: #80b080;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
 }
-.copy-btn:hover { background: rgba(255,255,255,0.1); }
-
-.copy-hint {
-    color: #70c870;
-    font-size: 0.75rem;
-    transition: opacity 0.3s;
-}
-
-.header-player {
-    color: #90c890;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
+.room-chip-action.copied { color: #70c870; }
 
 /* ── Main game layout ───────────────────────────────────────────────────── */
 .game-page { display: flex; flex-direction: column; height: 100vh; }
@@ -931,10 +922,11 @@ input, select {
         margin-bottom: 0;
     }
 
-    /* Compact header on narrow screens */
+    /* Compact header on narrow screens: just the centered room chip */
     .game-header {
         padding: 0.4rem 0.8rem;
+        justify-content: center;
     }
-    .header-logo { display: none; }   /* hide wordmark, keep room code + copy */
-    .room-code-display { font-size: 1rem; letter-spacing: 3px; }
+    .header-logo { display: none; }   /* hide wordmark, keep room chip */
+    .room-chip-code { font-size: 1rem; letter-spacing: 3px; }
 }
