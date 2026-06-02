@@ -9,7 +9,9 @@ COPY . .
 
 RUN mkdir -p games
 
-# Exec-form CMD — no shell, so no variable-expansion issues.
-# gunicorn.conf.py reads $PORT directly from the environment in Python.
+# run.py uses socketio.run() with eventlet's own WSGI server.
+# This avoids the gunicorn-forks-eventlet-worker double-patch issue
+# that caused the "container not listening on port 8080" error on Cloud Run.
+# PORT is read from the environment (Cloud Run injects PORT=8080).
 EXPOSE 8080
-CMD ["gunicorn", "--config", "gunicorn.conf.py", "app:app"]
+CMD ["python", "run.py"]
