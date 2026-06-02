@@ -444,7 +444,7 @@ input, select {
 
 /* ── 2 players: face each other ──────────────────────────────────────────── */
 [data-players="2"] .seat-pos-0 { bottom: 0;   left: 50%; transform: translateX(-50%); }
-[data-players="2"] .seat-pos-1 { top: 0;       left: 50%; transform: translateX(-50%) translateY(-100%); }
+[data-players="2"] .seat-pos-1 { top: 0;       left: 50%; transform: translateX(-50%); }
 
 /* ── 3 players: triangle ─────────────────────────────────────────────────── */
 [data-players="3"] .seat-pos-0 { bottom: 0;    left: 50%; transform: translateX(-50%); }
@@ -904,9 +904,13 @@ input, select {
         padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px));
     }
 
-    /* Extra top padding for 2-player so opponent seat clears the oval top */
-    .table-area[data-player-count="2"] {
-        padding-top: 88px;
+    /* 2-player heads-up: push both seats outside the oval so cards stay clear */
+    [data-players="2"] .seat-pos-0 { transform: translateX(-50%) translateY(100%); }
+    [data-players="2"] .seat-pos-1 { transform: translateX(-50%) translateY(-100%); }
+
+    /* Reserve space below wrapper for the local seat (above turnStatus) */
+    .table-area[data-player-count="2"] .table-wrapper {
+        margin-bottom: 82px;
     }
 
     /* Small ring in oval is too cramped on mobile — turn-status bar replaces it */
