@@ -342,7 +342,7 @@ function renderControls() {
     const isMyTurn = state.current_player_sid === socket.id;
     const inBetting = !['lobby', 'showdown'].includes(state.phase);
 
-    controlsBar.style.display = (isMyTurn && inBetting) ? 'flex' : 'none';
+    controlsBar.style.display = (isMyTurn && inBetting) ? '' : 'none';
     if (!isMyTurn || !inBetting) return;
 
     const me = (state.players || []).find(p => p.name === myName);

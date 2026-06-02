@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Poker De Game · {{ room_code }}</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -61,19 +61,7 @@
                 <div class="my-cards" id="myCards"></div>
             </div>
 
-            <!-- Betting controls -->
-            <div class="controls-bar" id="controlsBar" style="display:none;">
-                <button class="ctrl-btn btn-fold" id="foldBtn">Fold</button>
-                <button class="ctrl-btn btn-check" id="checkBtn">Check</button>
-                <button class="ctrl-btn btn-call" id="callBtn">Call</button>
-                <div class="raise-group">
-                    <button class="ctrl-btn btn-raise" id="raiseBtn">Raise to</button>
-                    <input type="number" id="raiseAmount" class="raise-input" min="0" step="10" placeholder="Amount">
-                </div>
-                <button class="ctrl-btn btn-allin" id="allinBtn">All-in</button>
-            </div>
-
-            <!-- Large personal countdown — only shown when it's your turn -->
+            <!-- Large personal countdown — above controls so it's not hidden by fixed bar -->
             <div class="my-turn-timer" id="myTurnTimer" style="display:none;">
                 <svg class="my-ring" viewBox="0 0 72 72" width="60" height="60" aria-hidden="true">
                     <circle class="ring-track" cx="36" cy="36" r="30" fill="none" stroke-width="4"/>
@@ -83,6 +71,19 @@
                             transform="rotate(-90 36 36)"/>
                 </svg>
                 <span class="my-timer-text" id="myTimerText"></span>
+            </div>
+
+            <!-- Betting controls -->
+            <div class="controls-bar" id="controlsBar" style="display:none;">
+                <button class="ctrl-btn btn-fold" id="foldBtn">Fold</button>
+                <button class="ctrl-btn btn-check" id="checkBtn">Check</button>
+                <button class="ctrl-btn btn-call" id="callBtn">Call</button>
+                <div class="raise-group">
+                    <button class="ctrl-btn btn-raise" id="raiseBtn">Raise to</button>
+                    <input type="number" id="raiseAmount" class="raise-input" min="0" step="10"
+                           placeholder="Amount" inputmode="numeric">
+                </div>
+                <button class="ctrl-btn btn-allin" id="allinBtn">All-in</button>
             </div>
 
         </div><!-- /table-area -->
