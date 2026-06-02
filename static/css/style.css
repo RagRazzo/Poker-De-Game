@@ -904,9 +904,17 @@ input, select {
         padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px));
     }
 
-    /* 2-player heads-up: push both seats outside the oval so cards stay clear */
+    /* 2-player heads-up: push local seat outside the oval bottom */
     [data-players="2"] .seat-pos-0 { transform: translateX(-50%) translateY(100%); }
-    [data-players="2"] .seat-pos-1 { transform: translateX(-50%) translateY(-100%); }
+
+    /* Opponent seat: fixed just below the header — bypasses overflow clipping */
+    [data-players="2"] .seat-pos-1 {
+        position: fixed;
+        top: calc(48px + env(safe-area-inset-top, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 8;
+    }
 
     /* Reserve space below wrapper for the local seat (above turnStatus) */
     .table-area[data-player-count="2"] .table-wrapper {
