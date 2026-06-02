@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Game state files (transient — never commit or ship)
+games/*.json
+
+# Git
+.git/
+.gitignore
+
+# Dev / editor
+.idea/
+.vscode/
+*.swp
+
+# Docker itself
+Dockerfile
+.dockerignore
+
+# CI / deployment config (not needed inside the image)
+cloudbuild.yaml
+.github/
+
+# Docs
+README.md

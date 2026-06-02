@@ -1,0 +1,97 @@
+# GitHub Actions — Deploy to GCP Cloud Run on push to main
+#
+# Required GitHub Secrets:
+#   GCP_PROJECT_ID          — Your GCP project ID
+#   WIF_PROVIDER            — Workload Identity Federation provider resource name
+#                             e.g. projects/123/locations/global/workloadIdentityPools/my-pool/providers/github
+#   WIF_SERVICE_ACCOUNT     — Service account email for deployment
+#                             e.g. cloud-run-deployer@my-project.iam.gserviceaccount.com
+#   SECRET_KEY              — Random secret string for Flask sessions
+#
+# Required GCP setup (one-time):
+#   1. Enable APIs: Cloud Run, Artifact Registry, Cloud Build
+#   2. Create Artifact Registry repo:
+#      gcloud artifacts repositories create poker-de-game --repository-format=docker --location=us-central1
+#   3. Set up Workload Identity Federation for GitHub:
+#      https://github.com/google-github-actions/auth#setting-up-workload-identity-federation
+#   4. Grant service account roles:
+#      - roles/run.admin
+#      - roles/artifactregistry.writer
+#      - roles/iam.serviceAccountUser
+
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID:   ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE:      poker-de-game
+  REGION:       us-central1
+  AR_REPO:      poker-de-game
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write   # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account:            ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker image
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.SERVICE }}"
+          docker build \
+            -t "${IMAGE}:${{ github.sha }}" \
+            -t "${IMAGE}:latest" \
+            .
+
+      - name: Push Docker image
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.SERVICE }}"
+          docker push --all-tags "${IMAGE}"
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.SERVICE }}:${{ github.sha }}"
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image="${IMAGE}" \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --timeout=3600 \
+            --concurrency=100 \
+            --min-instances=1 \
+            --max-instances=1 \
+            --session-affinity \
+            --memory=512Mi \
+            --cpu=1 \
+            --set-env-vars="SECRET_KEY=${{ secrets.SECRET_KEY }}"
+
+      - name: Get service URL
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "Deployed to: ${URL}"
+          echo "Health check: ${URL}/health"
