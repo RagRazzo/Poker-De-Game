@@ -1,0 +1,68 @@
+# GCP Cloud Build — triggered on push to main
+# Builds a container image, pushes to Artifact Registry, and deploys to Cloud Run.
+#
+# Required substitutions (set in Cloud Build trigger config):
+#   _REGION        — GCP region, e.g. us-central1
+#   _SERVICE       — Cloud Run service name, e.g. poker-de-game
+#   _AR_REPO       — Artifact Registry repo name, e.g. poker-de-game
+#   _SECRET_KEY    — Random secret for Flask sessions (set as substitution or Secret Manager ref)
+#
+# Required IAM roles for the Cloud Build service account:
+#   - Cloud Run Admin
+#   - Artifact Registry Writer
+#   - Service Account User
+
+steps:
+  # 1. Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: Build
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$COMMIT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest'
+      - '.'
+
+  # 2. Push image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: Push
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}'
+
+  # 3. Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: Deploy
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE}'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--timeout=3600'          # Max WebSocket session length
+      - '--concurrency=100'
+      - '--min-instances=1'       # Prevent cold starts (keeps in-memory state warm)
+      - '--max-instances=1'       # Single instance — in-memory GAMES dict + file storage
+      - '--session-affinity'      # Route same client to same instance (WebSocket continuity)
+      - '--set-env-vars=SECRET_KEY=${_SECRET_KEY}'
+      - '--memory=512Mi'
+      - '--cpu=1'
+
+substitutions:
+  _REGION: us-central1
+  _SERVICE: poker-de-game
+  _AR_REPO: poker-de-game
+  _SECRET_KEY: change-me-in-trigger-config   # Override this in the Cloud Build trigger
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
