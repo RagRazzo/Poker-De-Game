@@ -36,70 +36,6 @@ input, select {
     -webkit-user-select: none;
 }
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
-.game-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.55rem 1.2rem;
-    background: rgba(0, 0, 0, 0.45);
-    border-bottom: 1px solid var(--rail);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    z-index: 10;
-    position: relative;
-}
-
-.header-logo {
-    color: var(--gold);
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 0.5px;
-}
-
-.header-room {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.room-label { color: #80b080; font-size: 0.85rem; }
-
-.room-code-display {
-    color: var(--gold);
-    font-weight: 700;
-    font-size: 1.05rem;
-    letter-spacing: 4px;
-}
-
-.copy-btn {
-    background: transparent;
-    border: 1px solid var(--rail);
-    color: #b0c8b0;
-    border-radius: 6px;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: background 0.15s;
-    font-family: inherit;
-    min-height: 36px;
-}
-.copy-btn:hover { background: rgba(255,255,255,0.1); }
-
-.copy-hint {
-    color: #70c870;
-    font-size: 0.75rem;
-    transition: opacity 0.3s;
-}
-
-.header-player {
-    color: #90c890;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
 /* ── Main game layout ───────────────────────────────────────────────────── */
 .game-page { display: flex; flex-direction: column; height: 100vh; }
 
@@ -924,11 +860,4 @@ input, select {
     .my-turn-timer {
         margin-bottom: 0;
     }
-
-    /* Compact header on narrow screens */
-    .game-header {
-        padding: 0.4rem 0.8rem;
-    }
-    .header-logo { display: none; }   /* hide wordmark, keep room code + copy */
-    .room-code-display { font-size: 1rem; letter-spacing: 3px; }
 }

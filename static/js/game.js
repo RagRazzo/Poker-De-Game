@@ -56,9 +56,6 @@ const chatInput       = $('chatInput');
 const chatSend        = $('chatSend');
 const chatCollapse    = $('chatCollapse');
 const chatSidebar     = $('chatSidebar');
-const copyBtn         = $('copyBtn');
-const copyHint        = $('copyHint');
-const myNameBadge     = $('myNameBadge');
 const toastEl         = $('toast');
 
 /* ── Rejoin on connect ───────────────────────────────────────────────────── */
@@ -110,8 +107,6 @@ socket.on('game_expired', (data) => {
 /* ── Render ──────────────────────────────────────────────────────────────── */
 function render() {
     if (!state) return;
-
-    myNameBadge.textContent = myName ? `Playing as ${myName}` : '';
 
     potDisplay.textContent = `Pot: ${state.pot}`;
 
@@ -537,18 +532,6 @@ chatCollapse.addEventListener('click', () => {
     chatOpen = !chatOpen;
     chatSidebar.classList.toggle('open', chatOpen);
     chatCollapse.textContent = chatOpen ? '×' : '−';
-});
-
-/* ── Copy room code ──────────────────────────────────────────────────────── */
-copyBtn.addEventListener('click', () => {
-    const inviteLink = `${location.origin}/?join=${ROOM_CODE}`;
-    navigator.clipboard.writeText(inviteLink).then(() => {
-        copyHint.textContent = 'Link copied!';
-        setTimeout(() => { copyHint.textContent = ''; }, 2000);
-    }).catch(() => {
-        // Clipboard unavailable (e.g. non-HTTPS) — fall back to showing the code
-        copyHint.textContent = ROOM_CODE;
-    });
 });
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
