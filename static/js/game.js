@@ -57,6 +57,7 @@ const chatSend        = $('chatSend');
 const chatCollapse    = $('chatCollapse');
 const chatSidebar     = $('chatSidebar');
 const toastEl         = $('toast');
+const copyInviteBtn   = $('copyInviteBtn');
 
 /* ── Rejoin on connect ───────────────────────────────────────────────────── */
 socket.on('connect', () => {
@@ -533,6 +534,25 @@ chatCollapse.addEventListener('click', () => {
     chatSidebar.classList.toggle('open', chatOpen);
     chatCollapse.textContent = chatOpen ? '×' : '−';
 });
+
+/* ── Copy invite link (lobby) ────────────────────────────────────────────── */
+if (copyInviteBtn) {
+    copyInviteBtn.addEventListener('click', () => {
+        const inviteLink = `${location.origin}/?join=${ROOM_CODE}`;
+        const reset = () => {
+            copyInviteBtn.textContent = '🔗 Copy invite link';
+            copyInviteBtn.classList.remove('copied');
+        };
+        navigator.clipboard.writeText(inviteLink).then(() => {
+            copyInviteBtn.textContent = '✓ Link copied!';
+            copyInviteBtn.classList.add('copied');
+            setTimeout(reset, 2000);
+        }).catch(() => {
+            // Clipboard unavailable (e.g. non-HTTPS) — show the link to copy manually
+            toast(inviteLink);
+        });
+    });
+}
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 let toastTimer = null;

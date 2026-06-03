@@ -618,8 +618,26 @@ input, select {
 .invite-hint {
     color: #90b890;
     font-size: 0.88rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.8rem;
 }
+
+.invite-copy-btn {
+    background: rgba(224,185,76,0.12);
+    border: 1px solid rgba(224,185,76,0.4);
+    color: var(--gold);
+    border-radius: 8px;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    margin-bottom: 1.3rem;
+    min-height: 40px;
+    transition: background 0.15s, transform 0.1s;
+}
+.invite-copy-btn:hover  { background: rgba(224,185,76,0.2); }
+.invite-copy-btn:active { transform: scale(0.98); }
+.invite-copy-btn.copied { color: #70c870; border-color: rgba(112,200,112,0.5); }
 
 .code-chip {
     background: rgba(224,185,76,0.15);
