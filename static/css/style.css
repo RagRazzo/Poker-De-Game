@@ -805,11 +805,22 @@ input, select {
 /* ── Mobile (≤ 480px): full layout optimized for one-thumb play ─────────── */
 @media (max-width: 480px) {
     .table-wrapper {
-        width: 98vw;
-        height: min(210px, 52vw);
+        width: 96vw;
+        height: min(180px, 48vw);
     }
-    .poker-table { border-width: 4px; }
+    .poker-table { border-width: 4px; inset: 16px 16px; }
     .seat { width: 80px; padding: 4px 5px; }
+
+    /* Desktop per-count widths out-specify the line above — restate them small
+       so multiplayer seats stay compact on phones */
+    [data-players="3"] .seat,
+    [data-players="4"] .seat,
+    [data-players="5"] .seat,
+    [data-players="6"] .seat { width: 80px; font-size: 0.64rem; }
+    [data-players="3"] .seat-name,
+    [data-players="4"] .seat-name,
+    [data-players="5"] .seat-name,
+    [data-players="6"] .seat-name { font-size: 0.66rem; }
 
     /* Fixed action bar pinned to bottom — reachable by thumbs */
     .controls-bar {
@@ -877,5 +888,69 @@ input, select {
     /* My turn big timer: above controls, visible above the bar */
     .my-turn-timer {
         margin-bottom: 0;
+    }
+
+    /* ── Multiplayer (3–6) on mobile ──────────────────────────────────────────
+       A short, wide oval can't host 3+ seats around it without overlapping the
+       pot/community cards. So we lift every opponent into row(s) ABOVE the oval
+       and drop the local player BELOW it, leaving the board clear in the middle.
+       Transforms don't affect layout, so table-area padding reserves the room. */
+
+    /* Local player: below the oval */
+    [data-players="3"] .seat-pos-0,
+    [data-players="4"] .seat-pos-0,
+    [data-players="5"] .seat-pos-0,
+    [data-players="6"] .seat-pos-0 {
+        top: auto; bottom: 0; left: 50%; right: auto;
+        transform: translateX(-50%) translateY(100%);
+    }
+
+    /* Opponents: anchored to the top edge, centred on their slot */
+    [data-players="3"] .seat:not(.seat-pos-0),
+    [data-players="4"] .seat:not(.seat-pos-0),
+    [data-players="5"] .seat:not(.seat-pos-0),
+    [data-players="6"] .seat:not(.seat-pos-0) {
+        top: 0; bottom: auto; right: auto;
+        transform: translateX(-50%) translateY(-100%);
+    }
+
+    /* 3 players → 2 opponents */
+    [data-players="3"] .seat-pos-1 { left: 72%; }
+    [data-players="3"] .seat-pos-2 { left: 28%; }
+
+    /* 4 players → 3 opponents across the top */
+    [data-players="4"] .seat-pos-1 { left: 82%; }
+    [data-players="4"] .seat-pos-2 { left: 50%; }
+    [data-players="4"] .seat-pos-3 { left: 18%; }
+
+    /* 5 players → 4 opponents across the top */
+    [data-players="5"] .seat-pos-1 { left: 86%; }
+    [data-players="5"] .seat-pos-2 { left: 62%; }
+    [data-players="5"] .seat-pos-3 { left: 38%; }
+    [data-players="5"] .seat-pos-4 { left: 14%; }
+
+    /* 6 players → 5 opponents in two rows above the oval */
+    [data-players="6"] .seat-pos-1 { left: 82%; }
+    [data-players="6"] .seat-pos-2 { left: 50%; }
+    [data-players="6"] .seat-pos-3 { left: 18%; }
+    [data-players="6"] .seat-pos-4:not(.seat-pos-0) { left: 68%; transform: translateX(-50%) translateY(-205%); }
+    [data-players="6"] .seat-pos-5:not(.seat-pos-0) { left: 32%; transform: translateX(-50%) translateY(-205%); }
+
+    /* Reserve room below the wrapper for the local "you" seat */
+    .table-area[data-player-count="3"] .table-wrapper,
+    .table-area[data-player-count="4"] .table-wrapper,
+    .table-area[data-player-count="5"] .table-wrapper,
+    .table-area[data-player-count="6"] .table-wrapper {
+        margin-bottom: 76px;
+    }
+
+    /* Push the cluster down so the top opponent row(s) clear the screen top */
+    .table-area[data-player-count="3"],
+    .table-area[data-player-count="4"],
+    .table-area[data-player-count="5"] {
+        padding-top: 88px;
+    }
+    .table-area[data-player-count="6"] {
+        padding-top: 190px;
     }
 }
