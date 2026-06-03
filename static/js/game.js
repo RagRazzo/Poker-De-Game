@@ -541,10 +541,12 @@ chatCollapse.addEventListener('click', () => {
 
 /* ── Copy room code ──────────────────────────────────────────────────────── */
 copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(ROOM_CODE).then(() => {
-        copyHint.textContent = 'Copied!';
+    const inviteLink = `${location.origin}/?join=${ROOM_CODE}`;
+    navigator.clipboard.writeText(inviteLink).then(() => {
+        copyHint.textContent = 'Link copied!';
         setTimeout(() => { copyHint.textContent = ''; }, 2000);
     }).catch(() => {
+        // Clipboard unavailable (e.g. non-HTTPS) — fall back to showing the code
         copyHint.textContent = ROOM_CODE;
     });
 });
