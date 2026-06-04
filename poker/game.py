@@ -27,6 +27,7 @@ class PokerGame:
         self.last_aggressor_index = -1
         self.max_players = max(2, min(6, max_players))
         self.turn_started_at = None   # set whenever a player's turn begins
+        self.last_results = None      # cached showdown results (None until resolved)
 
         self.add_player(host_sid, host_name, is_host=True)
 
@@ -143,6 +144,7 @@ class PokerGame:
         self.pot = 0
         self.current_bet = 0
         self.min_raise = BIG_BLIND
+        self.last_results = None
 
         for p in self.players:
             p["bet"] = 0
@@ -470,6 +472,20 @@ class PokerGame:
         self.pot = 0
         return results
 
+    def resolve_showdown(self):
+        """Award the pot and cache results — exactly once per hand.
+
+        Safe to call from any code path that may have reached showdown
+        (a player's action, an AFK/CPU timeout, or a disconnect that
+        folds the last opponent). Returns the cached results, or None if
+        the hand is not at showdown.
+        """
+        if self.phase != "showdown":
+            return None
+        if self.last_results is None:
+            self.last_results = self.determine_winner()
+        return self.last_results
+
     # ── Reset ──────────────────────────────────────────────────────────────
 
     def reset_for_next_round(self):
@@ -485,6 +501,7 @@ class PokerGame:
         self.pot = 0
         self.current_bet = 0
         self.turn_started_at = None
+        self.last_results = None
         self.phase = "lobby"
         self.touch()
 
@@ -502,6 +519,7 @@ class PokerGame:
         self.pot = 0
         self.current_bet = 0
         self.turn_started_at = None
+        self.last_results = None
         self.phase = "lobby"
         self.started = False
         self.touch()
@@ -571,6 +589,7 @@ class PokerGame:
             "last_aggressor_index": self.last_aggressor_index,
             "max_players": self.max_players,
             "turn_started_at": self.turn_started_at,
+            "last_results": self.last_results,
         }
 
     @classmethod
@@ -592,4 +611,5 @@ class PokerGame:
         game.last_aggressor_index = data.get("last_aggressor_index", -1)
         game.max_players = data.get("max_players", 6)
         game.turn_started_at = data.get("turn_started_at")
+        game.last_results = data.get("last_results")
         return game

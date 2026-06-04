@@ -59,11 +59,40 @@ def save(game):
         pass
 
 
+def showdown_payload(results):
+    return {
+        "pot": sum(r["amount"] for r in results),
+        "results": [
+            {"name": r["name"], "label": r["label"],
+             "amount": r["amount"], "won": r["won"]}
+            for r in results
+        ],
+        "revealed": [
+            {"name": r["name"], "cards": r["hole_cards"]}
+            for r in results
+            if r.get("hole_cards")
+        ],
+    }
+
+
 def broadcast_state(game):
+    # Resolve the showdown (award the pot) BEFORE emitting state so coins/pot
+    # are already correct in game_state. resolve_showdown is idempotent, so it
+    # runs once per hand no matter how many times we broadcast.
+    if game.phase == "showdown":
+        game.resolve_showdown()
+
     socketio.emit("game_state", game.public_state(), room=game.room_code)
     for p in game.players:
         if p["connected"] and p["hole_cards"]:
             socketio.emit("your_cards", {"hole_cards": p["hole_cards"]}, to=p["sid"])
+
+    # Emit the showdown event AFTER game_state so reconnecting clients have
+    # their `state` populated. Re-emitting on every broadcast also means a
+    # player who reconnects mid-showdown (or whose turn-ending opponent simply
+    # disconnected) reliably sees the result.
+    if game.phase == "showdown" and game.last_results is not None:
+        socketio.emit("showdown", showdown_payload(game.last_results), room=game.room_code)
 
 
 # ── HTTP Routes ────────────────────────────────────────────────────────────
@@ -189,27 +218,7 @@ def on_player_action(data):
         emit("error", {"message": msg})
         return
 
-    if game.phase == "showdown":
-        results = game.determine_winner()
-        revealed = [
-            {"name": r["name"], "cards": r["hole_cards"]}
-            for r in results
-            if r.get("hole_cards")
-        ]
-        socketio.emit(
-            "showdown",
-            {
-                "pot": sum(r["amount"] for r in results),
-                "results": [
-                    {"name": r["name"], "label": r["label"],
-                     "amount": r["amount"], "won": r["won"]}
-                    for r in results
-                ],
-                "revealed": revealed,
-            },
-            room=code,
-        )
-
+    # Showdown (if reached) is resolved and emitted inside broadcast_state.
     save(game)
     broadcast_state(game)
 
@@ -220,8 +229,16 @@ def on_next_round(data):
     if not code or code not in GAMES:
         return
     game = GAMES[code]
-    if game.host_sid != request.sid:
-        emit("error", {"message": "Only the host can start the next round"})
+    # Any seated, connected player may start the next round — not just the
+    # host. This keeps the game moving if the host has folded, busted, or
+    # left, and lets the winner/dealer deal the next hand.
+    player = game.get_player(request.sid)
+    if not player or not player["connected"]:
+        emit("error", {"message": "You're not seated in this game"})
+        return
+    # Only valid once the current hand is over; guards against two players
+    # both clicking "Next Round" and dealing twice.
+    if game.phase != "showdown":
         return
     game.reset_for_next_round()
     ok, msg = game.start_round()
@@ -347,26 +364,7 @@ def auto_play_loop():
             ok, _ = game.player_action(player["sid"], action, amount)
             if not ok:
                 continue
-            if game.phase == "showdown":
-                results = game.determine_winner()
-                revealed = [
-                    {"name": r["name"], "cards": r["hole_cards"]}
-                    for r in results
-                    if r.get("hole_cards")
-                ]
-                socketio.emit(
-                    "showdown",
-                    {
-                        "pot": sum(r["amount"] for r in results),
-                        "results": [
-                            {"name": r["name"], "label": r["label"],
-                             "amount": r["amount"], "won": r["won"]}
-                            for r in results
-                        ],
-                        "revealed": revealed,
-                    },
-                    room=code,
-                )
+            # Showdown (if reached) is resolved and emitted inside broadcast_state.
             save(game)
             broadcast_state(game)
             socketio.emit(

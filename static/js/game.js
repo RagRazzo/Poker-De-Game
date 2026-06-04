@@ -123,6 +123,13 @@ function render() {
     renderLobbyOverlay();
     renderControls();
 
+    // Dismiss the showdown overlay for every client once the hand has moved
+    // on (next round dealt, or reset to lobby) — not just the player who
+    // clicked. Otherwise non-clicking players stay stuck behind it.
+    if (state.phase !== 'showdown' && showdownOverlay) {
+        showdownOverlay.style.display = 'none';
+    }
+
     // Sync turn-status with current state immediately (timer interval updates it every second)
     const inBetting = !['lobby', 'showdown'].includes(state.phase);
     if (!inBetting || !state.current_player_sid) {
@@ -441,16 +448,21 @@ function showShowdown(data) {
     });
 
     showdownActions.innerHTML = '';
-    const isHost = socket.id === state.host_sid;
-    if (isHost) {
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'big-btn btn-next';
-        nextBtn.textContent = 'Next Round';
-        nextBtn.onclick = () => {
-            socket.emit('next_round', {});
-            showdownOverlay.style.display = 'none';
-        };
 
+    // Anyone at the table can deal the next hand, so the game never stalls
+    // when the host has folded, busted, or left.
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'big-btn btn-next';
+    nextBtn.textContent = 'Next Round';
+    nextBtn.onclick = () => {
+        socket.emit('next_round', {});
+        showdownOverlay.style.display = 'none';
+    };
+    showdownActions.appendChild(nextBtn);
+
+    // Resetting coins is a bigger reset, so keep it host-only.
+    const isHost = state && socket.id === state.host_sid;
+    if (isHost) {
         const resetBtn = document.createElement('button');
         resetBtn.className = 'big-btn btn-reset';
         resetBtn.textContent = 'New Game (reset coins)';
@@ -458,11 +470,7 @@ function showShowdown(data) {
             socket.emit('new_session', {});
             showdownOverlay.style.display = 'none';
         };
-
-        showdownActions.appendChild(nextBtn);
         showdownActions.appendChild(resetBtn);
-    } else {
-        showdownActions.innerHTML = '<p style="color:#90b890;font-size:0.85rem;">Waiting for host to start next round…</p>';
     }
 
     showdownOverlay.style.display = 'flex';
